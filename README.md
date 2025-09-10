@@ -1,6 +1,6 @@
 # DRP Ainul Arif - Daily Report Pendamping
 
-Website **DRP Ainul Arif** adalah platform berita dan laporan harian pendamping berbasis web. Proyek ini dibuat menggunakan **Alpine.js**, **HTML/CSS** modern, dan **Google Apps Script API** sebagai backend untuk menyimpan dan menampilkan data laporan.
+Website **DRP Ainul Arif** adalah platform berita dan laporan harian pendamping berbasis CRUD API web. Proyek ini dibuat menggunakan **Alpine.js**, **HTML/CSS** modern, dan **Google Apps Script API** sebagai backend untuk menyimpan dan menampilkan data laporan.
 
 ## 📰 Fitur Utama
 
