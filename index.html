@@ -136,7 +136,7 @@
 <body>
 
 <div class="navbar">
-  <div class="brand"><i class="fas fa-newspaper"></i><a href="crud" target="_blank" rel="noopener noreferrer">DRP TPP</a></div>
+  <div class="brand"><i class="fas fa-newspaper"></i><a href="crud.html" target="_blank" rel="noopener noreferrer">DRP TPP</a></div>
   <div class="filters">
     <select x-model="filterYear" @change="filterFiles()"><option value="">-Tahun-</option><template x-for="y in years" :key="y"><option x-text="y" :value="y"></option></template></select>
     <select x-model="filterMonth" @change="filterFiles()"><option value="">-Bulan-</option><template x-for="(m,index) in months" :key="index"><option :value="index+1" x-text="m"></option></template></select>
@@ -340,5 +340,6 @@ document.addEventListener('click', (e) => {
 </script>
 </body>
 </html>
+
 
 
