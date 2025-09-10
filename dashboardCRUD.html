@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="id" x-data="app()" x-init="loadFiles()">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CRUD DRP Ainul Arif</title>
+<link rel="icon" type="image/x-icon" href="picture.png">
+<meta name="description" content="Aplikasi manajemen gambar Drive, upload, kompres, preview thumbnail, dan CRUD file. SEO friendly.">
+<script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+<style>
+/* Reset & Base */
+* { box-sizing:border-box; margin:0; padding:0; font-family:sans-serif; }
+html { font-size:16px; }
+@media (max-width:768px){ html{ font-size:15px; } }
+@media (max-width:480px){ html{ font-size:14px; } }
+body { background:#f3f4f6; color:#1f2937; display:flex; flex-direction:column; min-height:100vh; padding-top:70px; }
+
+/* Navbar */
+.navbar { position:fixed; top:0; left:0; right:0; height:60px; background:#5a0681; color:#fff; display:flex; align-items:center; justify-content:space-between; padding:0 20px; z-index:100; box-shadow:0 2px 6px rgba(0,0,0,0.2);}
+.navbar .brand { font-weight:bold; font-size:1.3rem; }
+.navbar .filters { display:flex; gap:10px; align-items:center; flex-wrap:nowrap; }
+.navbar select { padding:6px 12px; border-radius:6px; border:none; font-size:0.95rem; min-width:120px; }
+
+/* Main container */
+.max-w-5xl { max-width:1200px; margin:0 auto; width:100%; padding:0 10px; }
+
+/* Heading */
+h1 { text-align:center; font-size:1.6rem; font-weight:bold; margin-bottom:20px; color:#1f2937; }
+
+/* Table */
+.table-container { overflow-x:auto; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.1); margin-bottom:20px; background:#fff; }
+table { width:100%; border-collapse:collapse; }
+thead { background:#5a0681; color:#fff; position:sticky; top:0; z-index:10; }
+thead th { padding:12px 10px; text-align:left; font-weight:600; font-size:0.95rem; }
+tbody tr { border-bottom:1px solid #e5e7eb; cursor:pointer; transition:background 0.2s; }
+tbody tr:hover { background:#e0f2fe; }
+tbody td { padding:10px 8px; vertical-align:middle; text-align:left; font-size:0.9rem; }
+img.thumbnail { max-width:100px; height:auto; object-fit:cover; border-radius:6px; box-shadow:0 1px 3px rgba(0,0,0,0.2); display:block; margin:0 auto; }
+
+/* Mobile table -> card view */
+@media (max-width:640px){
+  table, thead, tbody, th, td, tr { display:block; }
+  thead { display:none; }
+  tbody tr { margin-bottom:15px; border:1px solid #e5e7eb; border-radius:12px; padding:10px; background:#fff; box-shadow:0 2px 8px rgba(0,0,0,0.05); }
+  tbody td { display:flex; justify-content:space-between; padding:8px 5px; font-size:0.875rem; text-align:left; }
+  tbody td::before { content: attr(data-label); font-weight:600; color:#374151; margin-right:8px; flex-shrink:0; width:100px; }
+  img.thumbnail { max-width:80px; }
+}
+
+/* Buttons */
+.button { padding:10px 16px; border-radius:8px; border:none; cursor:pointer; transition:all 0.2s; font-size:0.95rem; font-weight:500; }
+.button-blue { background:#2563eb; color:#fff; }
+.button-blue:hover { background:#1d4ed8; }
+.button-green { background:#16a34a; color:#fff; }
+.button-green:hover { background:#15803d; }
+.button-red { background:#dc2626; color:#fff; }
+.button-red:hover { background:#b91c1c; }
+.button-gray { background:#e5e7eb; color:#1f2937; }
+.button-gray:hover { background:#d1d5db; }
+
+/* Inputs */
+input, select, textarea { width:100%; padding:10px; margin-bottom:10px; border:1px solid #d1d5db; border-radius:8px; font-size:0.95rem; }
+
+/* Modal */
+.modal-bg {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top:50px;
+  z-index:50;
+  backdrop-filter: blur(4px);
+  opacity:0;
+  pointer-events:none;
+  transition: opacity 0.25s ease;
+}
+.modal-bg[x-show] { opacity:1; pointer-events:auto; }
+.modal {
+  background:#fff;
+  border-radius:12px;
+  width:100%;
+  max-width:480px;
+  max-height:85vh;
+  overflow-y:auto;
+  padding:25px 20px;
+  box-shadow:0 10px 25px rgba(0,0,0,0.3);
+  transform: translateY(-20px);
+  opacity:0;
+  transition: transform 0.25s ease, opacity 0.25s ease;
+}
+.modal-bg[x-show] .modal { transform:translateY(0); opacity:1; }
+.modal h2 { margin-top:0; font-size:1.5rem; text-align:center; color:#1f2937; margin-bottom:15px; }
+
+/* Modal actions */
+.modal-actions { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:10px; margin-top:15px; }
+.modal-actions .button { flex: 1 1 auto; }
+
+/* Modal thumbnail */
+.modal img.thumbnail { max-width:200px; margin:10px auto; display:block; border-radius:8px; box-shadow:0 2px 6px rgba(0,0,0,0.2); }
+
+/* Spinner */
+.spinner { border:4px solid #f3f4f6; border-top:4px solid #2563eb; border-radius:50%; width:40px; height:40px; animation:spin 1s linear infinite; margin:40px auto; }
+@keyframes spin { 100% { transform:rotate(360deg); } }
+
+/* Back to top */
+#backToTop { position:fixed; bottom:20px; right:20px; background:#2563eb; color:#fff; border:none; border-radius:50%; width:45px; height:45px; font-size:20px; cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,0.3); display:none; align-items:center; justify-content:center; z-index:100; transition: background 0.2s, transform 0.2s; }
+#backToTop:hover { background:#1d4ed8; transform:translateY(-3px); }
+
+/* Footer */
+footer { margin-top:auto; padding:15px; background:#5a0681; color:#d1d5db; border-radius:8px; text-align:center; font-size:14px; }
+footer a { color:#60a5fa; text-decoration:none; }
+footer a:hover { text-decoration:underline; }
+</style>
+</head>
+<body>
+
+<!-- Navbar -->
+<div class="navbar">
+  <div class="brand"><a href="./">DRP TPP</a></div>
+  <div class="filters">
+    <select x-model="filterYear" @change="filterFiles()">
+      <option value="">Semua Tahun</option>
+      <template x-for="y in years" :key="y">
+        <option x-text="y" :value="y"></option>
+      </template>
+    </select>
+    <select x-model="filterMonth" @change="filterFiles()">
+      <option value="">Semua Bulan</option>
+      <template x-for="(m,index) in months" :key="index">
+        <option :value="index+1" x-text="m"></option>
+      </template>
+    </select>
+  </div>
+</div>
+
+<div class="max-w-5xl mx-auto">
+
+<h1>📂 DRP to Google Drive</h1>
+
+<div style="text-align:center; margin-bottom:15px;">
+  <button @click="openUploadModal()" class="button button-blue">⬆️ Upload Gambar</button>
+</div>
+
+<div style="margin-bottom:10px;">
+  <input type="text" placeholder="Cari Deskripsi..." x-model="searchQuery" @input="filterFiles()">
+</div>
+
+<template x-if="loading">
+  <div class="spinner"></div>
+</template>
+
+<div class="table-container" x-show="!loading">
+<table>
+<thead>
+<tr>
+<th>FOTO</th>
+<th>Nama Foto</th>
+<th>Keterangan</th>
+<th>Info</th>
+</tr>
+</thead>
+<tbody>
+<template x-for="file in filteredFiles()" :key="file.id">
+<tr @click="openCrudModal(file)">
+<td data-label="Foto"><img :src="file.thumbnailUrl" class="thumbnail"></td>
+<td data-label="Nama Foto" x-text="file.name"></td>
+<td data-label="Keterangan" x-text="shorten(file.keterangan)"></td>
+<td data-label="Info">
+<div style="font-size:0.85rem; color:#555;">
+👁️ Views: <span x-text="file.views"></span><br>
+⏳ Created: <span x-text="file.uploaded"></span><br>
+✏️ Updated: <span x-text="file.updated || '-'"></span>
+</div>
+</td>
+</tr>
+</template>
+</tbody>
+</table>
+</div>
+
+<div class="log-message" x-text="logMessage"></div>
+
+<!-- Upload Modal -->
+<div x-show="uploadModal" x-cloak class="modal-bg">
+  <div class="modal" @click.outside="closeUploadModal()">
+    <h2>Upload Gambar</h2>
+    <input type="file" @change="previewFile($event)" accept="image/*">
+    <template x-if="previewData">
+      <img :src="previewData" class="thumbnail">
+    </template>
+    <div class="file-info" x-text="fileInfo"></div>
+    <label>Keterangan</label>
+    <textarea x-model="keterangan" rows="4" placeholder="Masukkan keterangan..."></textarea>
+    <label>Konversi tipe gambar</label>
+    <select x-model="convertType">
+      <option value="keep">Tetap</option>
+      <option value="image/jpeg">JPEG</option>
+      <option value="image/png">PNG</option>
+      <option value="image/webp">WebP</option>
+    </select>
+    <div class="modal-actions">
+      <button @click="closeUploadModal()" class="button button-gray">Batal</button>
+      <button @click="uploadFile()" class="button button-blue">Upload</button>
+    </div>
+  </div>
+</div>
+
+<!-- CRUD Modal -->
+<div x-show="crudModal" x-cloak class="modal-bg">
+  <div class="modal" @click.outside="closeCrudModal()">
+    <h2>Edit / Hapus File</h2>
+    <label>Nama</label>
+    <input type="text" x-model="crudName">
+    <label>Keterangan</label>
+    <textarea x-model="crudKeterangan" rows="4"></textarea>
+    <div class="modal-actions">
+      <button @click="closeCrudModal()" class="button button-gray">Batal</button>
+      <button @click="saveUpdate()" class="button button-green">Simpan</button>
+      <button @click="deleteFile()" class="button button-red">Hapus</button>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<button id="backToTop" title="Kembali ke atas">⬆️</button>
+
+<footer>
+<p>Author: <strong>Ainul Arif</strong> | Email: <a href="mailto:ainoelarief@gmail.com">ainoelarief@gmail.com</a></p>
+<p>© <span id="year"></span> aincodelab. All rights reserved.</p>
+</footer>
+
+<script>
+document.getElementById("year").textContent = new Date().getFullYear();
+const API_URL = "https://script.google.com/macros/s/AKfycbwVtNUpaEVFHGx2AxoLl5KwwKF89JM4_uI3g39NVPg01Ni42Q111eK01JB4e06h0SSG/exec";
+
+function app() {
+return {
+files:[], allFiles:[], searchQuery:'', logMessage:'', uploadModal:false, crudModal:false,
+selectedFile:null, previewData:null, compressedBlob:null, convertType:'keep', keterangan:'', fileInfo:'',
+crudId:null, crudName:'', crudKeterangan:'', loading:false,
+filterYear:'', filterMonth:'', years:[], months:["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"],
+
+log(msg){ this.logMessage=msg },
+
+async loadFiles(){
+  this.loading=true;
+  try{
+    let r = await fetch(API_URL,{method:'POST', body:JSON.stringify({action:'list'})});
+    let data=await r.json();
+    this.allFiles=data.files.sort((a,b)=>new Date(b.uploaded)-new Date(a.uploaded));
+    let yearSet=new Set(this.allFiles.map(f=>new Date(f.uploaded).getFullYear()));
+    this.years=Array.from(yearSet).sort((a,b)=>b-a);
+  }catch(e){ this.log('Error load: '+e.message); }
+  this.loading=false;
+},
+
+filteredFiles(){
+  return this.allFiles.filter(f=>{
+    const d=new Date(f.uploaded);
+    let ok=true;
+    if(this.filterYear) ok=ok&&(d.getFullYear()==this.filterYear);
+    if(this.filterMonth) ok=ok&&(d.getMonth()+1==this.filterMonth);
+    if(this.searchQuery) ok=ok&&f.name.toLowerCase().includes(this.searchQuery.toLowerCase());
+    return ok;
+  });
+},
+
+openUploadModal(){ this.uploadModal=true },
+closeUploadModal(){ this.uploadModal=false; this.resetUploadForm() },
+resetUploadForm(){ this.selectedFile=null; this.previewData=null; this.compressedBlob=null; this.keterangan=''; this.convertType='keep'; this.fileInfo=''; },
+
+previewFile(event){
+  const file=event.target.files[0]; if(!file) return;
+  this.selectedFile=file;
+  const reader=new FileReader();
+  const appThis=this;
+  reader.onload=e=>{ appThis.previewData=e.target.result; appThis.compressImage(appThis.selectedFile); }
+  reader.readAsDataURL(file);
+},
+
+compressImage(imgFile){
+  const img=new Image();
+  const appThis=this;
+  img.onload=function(){
+    const canvas=document.createElement('canvas');
+    canvas.width=img.width; canvas.height=img.height;
+    const ctx=canvas.getContext('2d');
+    ctx.drawImage(img,0,0);
+    const type=appThis.convertType==='keep'? 'image/jpeg':appThis.convertType;
+    let quality=0.9;
+    function tryCompress(){
+      canvas.toBlob(blob=>{
+        if(blob.size/1024>100 && quality>0.1){ quality-=0.05; tryCompress(); }
+        else{ appThis.compressedBlob=blob; appThis.fileInfo=`Ukuran: ${(blob.size/1024).toFixed(1)} KB (Q=${Math.round(quality*100)}%)`; }
+      }, type, quality);
+    }
+    tryCompress();
+  }
+  img.src=this.previewData;
+},
+
+uploadFile(){
+  if(!this.compressedBlob){ alert("Pilih gambar!"); return; }
+  const reader=new FileReader();
+  const appThis=this;
+  reader.onloadend=function(){
+    const base64data=reader.result.split(',')[1];
+    appThis.log('⏳ Mengupload...');
+    fetch(API_URL,{
+      method:'POST',
+      body:JSON.stringify({
+        action:'upload', fileName:appThis.selectedFile.name,
+        fileData:base64data, mimeType:appThis.compressedBlob.type,
+        keterangan:appThis.keterangan
+      })
+    }).then(r=>r.json()).then(data=>{
+      if(data.success){ appThis.log('✅ Upload sukses'); appThis.closeUploadModal(); appThis.loadFiles() }
+      else appThis.log('❌ Gagal upload: '+data.message);
+    }).catch(e=>appThis.log('❌ Error: '+e.message));
+  }
+  reader.readAsDataURL(this.compressedBlob);
+},
+
+openCrudModal(file){
+  this.crudModal=true;
+  this.crudId=file.id; this.crudName=file.name; this.crudKeterangan=file.keterangan;
+},
+closeCrudModal(){ this.crudModal=false },
+
+saveUpdate(){
+  const appThis=this;
+  this.log('⏳ Menyimpan...');
+  fetch(API_URL,{method:'POST',body:JSON.stringify({
+    action:'update', id:this.crudId, newName:this.crudName, keterangan:this.crudKeterangan
+  })}).then(r=>r.json()).then(data=>{
+    if(data.success){ appThis.log('✅ Update sukses'); appThis.loadFiles(); }
+    else appThis.log('❌ Gagal update: '+data.message);
+    appThis.closeCrudModal();
+  });
+},
+
+deleteFile(){
+  if(!confirm("Yakin ingin menghapus file ini?")) return;
+  const appThis=this;
+  fetch(API_URL,{ method:'POST', body:JSON.stringify({action:'delete', id:this.crudId}) })
+  .then(r=>r.json()).then(data=>{
+    if(data.success){ appThis.log('🗑️ File dihapus'); appThis.loadFiles(); }
+    else appThis.log('❌ Gagal hapus: '+data.message);
+    this.closeCrudModal();
+  });
+},
+
+shorten(text, wordLimit=15){
+  if(!text) return '';
+  const words=text.split(/\s+/);
+  if(words.length<=wordLimit) return text;
+  return words.slice(0,wordLimit).join(' ')+'...Selengkapnya';
+}
+}}
+const backToTop=document.getElementById("backToTop");
+window.addEventListener("scroll",()=>{ backToTop.style.display=(document.documentElement.scrollTop>50)?"flex":"none"; });
+backToTop.addEventListener("click",()=>{ window.scrollTo({ top:0, behavior:"smooth" }); });
+document.getElementById("year").textContent=new Date().getFullYear();
+</script>
+
+</body>
+</html>
