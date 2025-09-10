@@ -72,7 +72,7 @@ Website **DRP Ainul Arif** adalah platform berita dan laporan harian pendamping 
 
 1. **Clone repository ini:**
 ```bash
-git clone https://github.com/username/DRP-AinulArif.git
+git clone https://github.com/aincodelab/drptpp.git
 ````
 
 2. **Buka `index.html` di browser:**
